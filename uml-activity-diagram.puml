@@ -1,0 +1,99 @@
+@startuml Activity Diagram - Order Processing Flow
+
+|Customer|
+start
+:Open application;
+:Login/Authenticate;
+
+if (Authenticated?) then (yes)
+  :Navigate to Create Order;
+  :Fill order details;
+  note right
+    - Pickup address
+    - Delivery address
+    - Items description
+    - Time windows
+    - Special instructions
+  end note
+  :Submit order;
+else (no)
+  :Show login page;
+  stop
+endif
+
+|System|
+:Validate order data;
+:Generate order number;
+:Save order to database;
+:Set status to "pending";
+:Broadcast order:created event;
+
+|Admin|
+:Receive new order notification;
+:Review order details;
+:View available couriers;
+
+if (Auto-assign enabled?) then (yes)
+  :System assigns optimal courier;
+  note right
+    Based on:
+    - Location proximity
+    - Vehicle capacity
+    - Courier availability
+    - Current workload
+  end note
+else (no)
+  :Manually select courier;
+endif
+
+:Create delivery record;
+:Assign courier to order;
+:Broadcast order:assigned event;
+
+|Courier|
+:Receive order assignment;
+:View order details on map;
+:Accept assignment;
+:Update status to "in_progress";
+
+:Navigate to pickup location;
+:Update location periodically;
+note right
+  Real-time location tracking
+  via Socket.IO
+end note
+
+:Arrive at pickup;
+:Collect package;
+:Update status to "picked_up";
+:Broadcast status change;
+
+:Navigate to delivery location;
+:Update location periodically;
+
+:Arrive at delivery;
+:Complete delivery;
+:Capture proof of delivery;
+note right
+  - Photo
+  - Signature
+  - Notes
+end note
+
+:Update status to "delivered";
+:Save delivery details;
+:Broadcast order:status_changed event;
+
+|Customer|
+:Receive delivery notification;
+:View delivery proof;
+:Rate delivery (optional);
+
+|System|
+:Update courier rating;
+:Archive completed order;
+:Generate delivery report;
+
+stop
+
+@enduml

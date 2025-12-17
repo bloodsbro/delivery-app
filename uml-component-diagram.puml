@@ -1,0 +1,98 @@
+@startuml Component Diagram
+!define RECTANGLE class
+
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+package "Client Layer" {
+    [Vue 3 Application] as VueApp
+    [Pinia Store] as Store
+    [Vue Router] as Router
+    component "UI Components" as UI {
+        [OrderForm]
+        [OrderList]
+        [MapView]
+        [VehicleCard]
+    }
+    [Socket.IO Client] as SocketClient
+}
+
+package "Server Layer (Nuxt/Nitro)" {
+    component "API Endpoints" as API {
+        [Auth API]
+        [Orders API]
+        [Couriers API]
+        [Vehicles API]
+        [Admin API]
+        [Notifications API]
+    }
+
+    [Auth Middleware] as AuthMid
+    [Socket.IO Server] as SocketServer
+
+    component "Repositories" as Repos {
+        [User Repository]
+        [Order Repository]
+        [Courier Repository]
+        [Vehicle Repository]
+    }
+}
+
+package "Data Layer" {
+    [Prisma Client] as Prisma
+    database "PostgreSQL" as DB {
+        [users]
+        [orders]
+        [couriers]
+        [vehicles]
+        [deliveries]
+        [routes]
+        [notifications]
+    }
+}
+
+package "External Services" {
+    [Map Service] as MapService
+    [Notification Service] as NotificationSvc
+}
+
+' Client Layer connections
+VueApp --> Router
+VueApp --> Store
+VueApp --> UI
+VueApp --> SocketClient
+
+' Client to Server
+Router --> API : HTTP/REST
+Store --> API : HTTP/REST
+SocketClient --> SocketServer : WebSocket
+
+' Server Layer connections
+API --> AuthMid : uses
+API --> Repos : calls
+API --> SocketServer : broadcasts
+AuthMid --> Repos : validates
+
+' Data Layer connections
+Repos --> Prisma : queries
+Prisma --> DB : SQL
+
+' External Services
+API --> MapService : geocoding
+API --> NotificationSvc : push/email/sms
+
+note right of SocketServer
+  Real-time events:
+  - order:created
+  - order:status_changed
+  - courier:location
+  - order:assigned
+end note
+
+note right of AuthMid
+  JWT-based authentication
+  Role-based access control
+  (admin, courier, customer)
+end note
+
+@enduml

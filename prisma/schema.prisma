@@ -3,7 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  // output   = "../generated/prisma"
 }
 
 datasource db {
@@ -223,6 +223,9 @@ model Vehicle {
   max_volume    Decimal?      @db.Decimal(10, 2) // DECIMAL(10, 2)
   features      Json? // JSONB
   status        VehicleStatus // ENUM ('active', 'inactive', 'maintenance')
+  current_latitude     Decimal?      @db.Decimal(10, 8) // DECIMAL(10, 8)
+  current_longitude    Decimal?      @db.Decimal(11, 8) // DECIMAL(11, 8)
+  last_location_update DateTime?     @db.Timestamptz(6) // TIMESTAMP
   created_at    DateTime      @default(now()) @db.Timestamptz(6) // TIMESTAMP NOT NULL
   updated_at    DateTime      @updatedAt @db.Timestamptz(6) // TIMESTAMP NOT NULL
 

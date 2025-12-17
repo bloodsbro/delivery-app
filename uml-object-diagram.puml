@@ -1,0 +1,235 @@
+@startuml Object Diagram - Delivery System Example
+
+object ":User" as user1 {
+    id = "550e8400-e29b-41d4-a716-446655440001"
+    email = "john.doe@example.com"
+    first_name = "John"
+    last_name = "Doe"
+    phone = "+1234567890"
+    role_id = "role-customer-001"
+    status = "active"
+    created_at = "2024-01-15T10:30:00Z"
+}
+
+object ":Role" as role1 {
+    id = "role-customer-001"
+    name = "customer"
+    description = "Customer role"
+    permissions = {"canCreateOrder": true, "canViewOrders": true}
+}
+
+object ":Customer" as customer1 {
+    id = "cust-001"
+    user_id = "550e8400-e29b-41d4-a716-446655440001"
+    company_name = "Tech Solutions Inc"
+    address = "123 Main St, Building A"
+    city = "New York"
+    country = "USA"
+    zip_code = "10001"
+}
+
+object ":Order" as order1 {
+    id = "order-abc-123"
+    order_number = "ORD-2024-001234"
+    customer_id = "cust-001"
+    status_id = "status-in-transit"
+    pickup_address = "123 Main St, New York, NY 10001"
+    pickup_latitude = 40.7589
+    pickup_longitude = -73.9851
+    delivery_address = "456 Park Ave, New York, NY 10022"
+    delivery_latitude = 40.7614
+    delivery_longitude = -73.9776
+    weight = 5.50
+    volume = 0.25
+    priority = 1
+    price = 45.00
+    payment_status = "paid"
+    created_at = "2024-12-05T09:00:00Z"
+}
+
+object ":Status" as status1 {
+    id = "status-in-transit"
+    name = "in_transit"
+    description = "Package is being delivered"
+    type = "delivery"
+    color = "#FFA500"
+    is_final = false
+}
+
+object ":User" as user2 {
+    id = "550e8400-e29b-41d4-a716-446655440002"
+    email = "mike.wilson@courier.com"
+    first_name = "Mike"
+    last_name = "Wilson"
+    phone = "+1234567891"
+    role_id = "role-courier-001"
+    status = "active"
+}
+
+object ":Role" as role2 {
+    id = "role-courier-001"
+    name = "courier"
+    description = "Courier role"
+    permissions = {"canViewAssignedOrders": true, "canUpdateLocation": true}
+}
+
+object ":Courier" as courier1 {
+    id = "courier-001"
+    user_id = "550e8400-e29b-41d4-a716-446655440002"
+    vehicle_id = "vehicle-001"
+    status_id = "status-courier-active"
+    current_latitude = 40.7600
+    current_longitude = -73.9800
+    availability = "busy"
+    max_weight = 50.00
+    max_volume = 2.00
+    rating = 4.85
+}
+
+object ":Vehicle" as vehicle1 {
+    id = "vehicle-001"
+    type = "car"
+    make = "Toyota"
+    model = "Prius"
+    year = 2022
+    license_plate = "ABC-1234"
+    color = "Silver"
+    max_weight = 100.00
+    max_volume = 3.50
+    status = "active"
+    features = {"gps": true, "refrigerated": false}
+}
+
+object ":Status" as status2 {
+    id = "status-courier-active"
+    name = "on_duty"
+    description = "Courier is actively delivering"
+    type = "courier"
+    color = "#00FF00"
+    is_final = false
+}
+
+object ":Delivery" as delivery1 {
+    id = "delivery-001"
+    order_id = "order-abc-123"
+    courier_id = "courier-001"
+    status_id = "status-in-transit"
+    route_id = "route-001"
+    start_time = "2024-12-05T10:00:00Z"
+    actual_pickup_time = "2024-12-05T10:15:00Z"
+    distance = 3.50
+    duration = 25
+    notes = "Handle with care"
+}
+
+object ":Route" as route1 {
+    id = "route-001"
+    name = "Morning Route - Downtown"
+    courier_id = "courier-001"
+    status = "in_progress"
+    start_time = "2024-12-05T09:00:00Z"
+    total_distance = 15.20
+    total_duration = 120
+}
+
+object ":RoutePoint" as routePoint1 {
+    id = "rp-001"
+    route_id = "route-001"
+    order_id = "order-abc-123"
+    type = "pickup"
+    sequence = 1
+    address = "123 Main St, New York, NY 10001"
+    latitude = 40.7589
+    longitude = -73.9851
+    planned_time = "2024-12-05T10:00:00Z"
+    actual_time = "2024-12-05T10:15:00Z"
+    status = "completed"
+}
+
+object ":RoutePoint" as routePoint2 {
+    id = "rp-002"
+    route_id = "route-001"
+    order_id = "order-abc-123"
+    type = "delivery"
+    sequence = 2
+    address = "456 Park Ave, New York, NY 10022"
+    latitude = 40.7614
+    longitude = -73.9776
+    planned_time = "2024-12-05T10:30:00Z"
+    status = "pending"
+}
+
+object ":Notification" as notif1 {
+    id = "notif-001"
+    user_id = "550e8400-e29b-41d4-a716-446655440001"
+    type = "push"
+    title = "Order Out for Delivery"
+    content = "Your order ORD-2024-001234 is on its way!"
+    related_entity_type = "order"
+    related_entity_id = "order-abc-123"
+    is_read = false
+    sent_at = "2024-12-05T10:16:00Z"
+}
+
+object ":Log" as log1 {
+    id = "log-001"
+    user_id = "550e8400-e29b-41d4-a716-446655440002"
+    action = "order_status_updated"
+    entity_type = "order"
+    entity_id = "order-abc-123"
+    data = {"old_status": "pending", "new_status": "in_transit"}
+    ip_address = "192.168.1.100"
+    created_at = "2024-12-05T10:15:30Z"
+}
+
+' Relationships
+user1 --> role1 : has role
+user1 --> customer1 : profile
+customer1 --> order1 : created
+order1 --> status1 : current status
+order1 --> delivery1 : assigned to
+
+user2 --> role2 : has role
+user2 --> courier1 : profile
+courier1 --> vehicle1 : uses
+courier1 --> status2 : current status
+courier1 --> delivery1 : performs
+courier1 --> route1 : follows
+
+delivery1 --> route1 : part of
+route1 --> routePoint1 : includes
+route1 --> routePoint2 : includes
+
+routePoint1 --> order1 : references
+routePoint2 --> order1 : references
+
+notif1 --> user1 : sent to
+log1 --> user2 : performed by
+
+note top of user1
+  **Customer User**
+  Regular customer who
+  creates and tracks orders
+end note
+
+note top of user2
+  **Courier User**
+  Delivers packages
+  Updates location in real-time
+end note
+
+note bottom of delivery1
+  **Active Delivery**
+  Currently in progress
+  Pickup completed
+  Delivery pending
+end note
+
+note right of route1
+  **Daily Route**
+  Contains multiple
+  delivery stops
+  Optimized sequence
+end note
+
+@enduml

@@ -1,0 +1,131 @@
+@startuml Deployment Diagram
+
+skinparam linetype ortho
+
+node "Client Device" as Client {
+    component "Web Browser" {
+        artifact "Vue 3 SPA" as SPA
+        artifact "Socket.IO Client" as WS_Client
+    }
+}
+
+node "Application Server" as AppServer {
+    component "Node.js Runtime" {
+        artifact "Nuxt 3 Application" as Nuxt {
+            component "Server-Side Rendering" as SSR
+            component "Nitro Engine" as Nitro
+            component "API Routes" as APIRoutes
+        }
+
+        artifact "Socket.IO Server" as WS_Server {
+            portin ":4000"
+        }
+    }
+
+    component "Process Manager" as PM2
+}
+
+node "Database Server" as DBServer {
+    database "PostgreSQL" as PostgreSQL {
+        storage "users table"
+        storage "orders table"
+        storage "couriers table"
+        storage "vehicles table"
+        storage "deliveries table"
+        storage "routes table"
+        storage "notifications table"
+    }
+
+    artifact "Prisma Client" as PrismaClient
+}
+
+node "Cache Server" as CacheServer <<optional>> {
+    database "Redis" as Redis {
+        storage "Session cache"
+        storage "Real-time data"
+    }
+}
+
+node "File Storage" as FileStorage <<optional>> {
+    storage "Static Assets" {
+        folder "/images"
+        folder "/documents"
+        folder "/proof-of-delivery"
+    }
+}
+
+node "External Services" as External {
+    cloud "Map API" as MapAPI {
+        component "Geocoding Service"
+        component "Routing Service"
+    }
+
+    cloud "Notification Gateway" as NotifGateway {
+        component "Email Service"
+        component "SMS Service"
+        component "Push Notifications"
+    }
+}
+
+' Client connections
+Client -down-> AppServer : HTTPS :443\nWebSocket :4000
+SPA --> WS_Client : uses
+
+' Application Server connections
+WS_Client ..> WS_Server : WebSocket\nconnection
+SPA --> Nuxt : HTTP requests
+
+Nuxt --> APIRoutes : internal
+APIRoutes --> PrismaClient : ORM queries
+PM2 --> Nuxt : manages
+WS_Server --> Nitro : broadcasts events
+
+' Database connections
+PrismaClient --> PostgreSQL : TCP :5432
+
+' Cache connections
+Nuxt ..> Redis : session/cache\nTCP :6379
+
+' Storage connections
+Nuxt ..> FileStorage : static files\nHTTP/S3
+
+' External services
+APIRoutes ..> MapAPI : REST API
+APIRoutes ..> NotifGateway : REST API
+
+note right of AppServer
+  **Environment Variables:**
+  - DATABASE_URL
+  - SOCKET_PORT=4000
+  - SOCKET_URL
+  - JWT_SECRET
+  - NODE_ENV
+end note
+
+note right of PostgreSQL
+  **Database Schema:**
+  - 11 tables
+  - UUID primary keys
+  - JSONB for flexible data
+  - Geospatial columns
+  - Enums for statuses
+end note
+
+note bottom of Client
+  **Deployment targets:**
+  - Desktop browsers
+  - Mobile browsers
+  - Progressive Web App (PWA)
+end note
+
+legend right
+  **Technology Stack:**
+  - Frontend: Vue 3, Nuxt 3, TailwindCSS
+  - Backend: Nitro, Node.js
+  - Database: PostgreSQL, Prisma ORM
+  - Real-time: Socket.IO
+  - State: Pinia
+  - Auth: JWT
+endlegend
+
+@enduml
