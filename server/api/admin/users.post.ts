@@ -1,10 +1,10 @@
-import { currentUser } from '~/server/utils/auth'
+import { requirePermission } from '~/server/utils/rbac'
+import { PERMISSIONS } from '~/utils/permissions'
 import prisma from '~/lib/prisma'
 import bcrypt from 'bcrypt'
 
 export default defineEventHandler(async (event) => {
-  const me = await currentUser(event)
-  if (!me || me.role.name !== 'admin') throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  await requirePermission(event, PERMISSIONS.MANAGE_USERS)
   const body = await readBody<{ email: string; password: string; firstName?: string; lastName?: string; phone?: string; role?: string }>(event)
   const email = String(body.email || '').trim().toLowerCase()
   const password = String(body.password || '')
@@ -15,5 +15,6 @@ export default defineEventHandler(async (event) => {
   const role = await prisma.role.findFirst({ where: { name: roleName } }) || await prisma.role.create({ data: { name: roleName } })
   const hash = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({ data: { email, password_hash: hash, first_name: body.firstName || '', last_name: body.lastName || '', phone: body.phone || '', role_id: role.id, status: 'active' } })
+  
   return { id: user.id, email: user.email, role: role.name }
 })

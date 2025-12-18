@@ -33,8 +33,9 @@
 </template>
 <script setup lang="ts">
 import type { Log } from '@prisma/client'
+import { PERMISSIONS } from '~/utils/permissions'
 
-definePageMeta({ middleware: 'auth', roles: ['admin'] })
+definePageMeta({ middleware: 'auth', permissions: [PERMISSIONS.VIEW_LOGS] })
 useHead({
   title: 'Журнали подій — Delivery App',
   meta: [

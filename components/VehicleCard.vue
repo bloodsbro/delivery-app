@@ -1,7 +1,7 @@
 <template>
   <div class="bg-gray-900 text-gray-100 rounded-lg shadow-md p-6 border border-gray-800 flex flex-col justify-between h-full cursor-pointer" @click="$emit('select', vehicle)">
     <div>
-      <h3 class="text-xl font-bold text-gray-100 mb-2 flex justify-between">{{ vehicle.model }} <img src="@/assets/icons/edit.svg" style="width: 24px; height: 24px" /></h3>
+      <h3 class="text-xl font-bold text-gray-100 mb-2 flex justify-between">{{ vehicle.model }} <img src="@/assets/icons/edit.svg" style="width: 24px; height: 24px" ></h3>
       <p class="text-sm text-gray-400 mb-4">
         <span :class="['px-2 py-1 rounded-full text-xs font-semibold', statusClass]">
           {{ statusDisplay }}
@@ -23,7 +23,6 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, computed } from 'vue';
 import type { Vehicle } from '~/types/vehicle';
 
 const props = defineProps<{

@@ -4,12 +4,21 @@ interface User {
   id: string
   email: string
   role: string
+  permissions: string[]
   firstName?: string
   lastName?: string
 }
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({ user: null as User | null, loading: false }),
+  getters: {
+    hasPermission: (state) => (permission: string) => {
+      if (!state.user) return false
+      if (state.user.role === 'admin') return true
+      const perms = state.user.permissions || []
+      return perms.includes(permission) || perms.includes('*')
+    }
+  },
   actions: {
     async me() {
       const headers = useRequestHeaders(['cookie'])

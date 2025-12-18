@@ -47,5 +47,6 @@ export default defineEventHandler(async (event) => {
   if (!ok) throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
   setSession(event, user.id)
   await createLog({ userId: user.id, action: 'login', entityType: 'user', entityId: user.id, ip: (getRequestHeaders(event)['x-forwarded-for'] as string) || undefined, ua: getRequestHeaders(event)['user-agent'] as string })
-  return { id: user.id, email: user.email, role: user.role.name, firstName: user.first_name, lastName: user.last_name }
+  const permissions = (Array.isArray(user.role.permissions) ? user.role.permissions : []) as string[]
+  return { id: user.id, email: user.email, role: user.role.name, firstName: user.first_name, lastName: user.last_name, permissions }
 })

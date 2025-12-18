@@ -13,4 +13,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
     if (!auth.user) return navigateTo('/login')
     if (!requiredRoles.includes(auth.user.role)) return navigateTo('/')
   }
+
+  const requiredPermissions = (to.meta?.permissions as string[]) || []
+  if (requiredPermissions.length > 0) {
+    if (!auth.user) return navigateTo('/login')
+    const hasAll = requiredPermissions.every(p => auth.hasPermission(p))
+    if (!hasAll) return navigateTo('/')
+  }
 })

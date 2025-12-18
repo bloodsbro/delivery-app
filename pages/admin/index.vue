@@ -73,7 +73,9 @@ import { useOrderStore } from '~/stores/orders';
 import OrderList from '~/components/OrderList.vue';
 import MapView from '~/components/MapView.vue'
 import type { Order } from '~/types/order';
-definePageMeta({ middleware: 'auth', roles: ['admin'] })
+import { PERMISSIONS } from '~/utils/permissions'
+
+definePageMeta({ middleware: 'auth', permissions: [PERMISSIONS.VIEW_ALL_ORDERS] })
 useHead({
   title: 'Адміністрування замовлень — Delivery App',
   meta: [

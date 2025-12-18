@@ -86,8 +86,9 @@
 
 <script setup lang="ts">
 import { Chart, registerables } from 'chart.js'
+import { PERMISSIONS } from '~/utils/permissions'
 
-definePageMeta({ middleware: 'auth', roles: ['admin'] })
+definePageMeta({ middleware: 'auth', permissions: [PERMISSIONS.VIEW_ANALYTICS] })
 useHead({
   title: 'Аналітика — Delivery App',
   meta: [

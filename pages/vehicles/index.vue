@@ -55,8 +55,9 @@ import VehicleCard from '~/components/VehicleCard.vue';
 import MapView from '~/components/MapView.vue'
 import type { Vehicle } from '~/types/vehicle'
 import { useAuthStore } from '~/stores/auth'
+import { PERMISSIONS } from '~/utils/permissions'
 
-definePageMeta({ middleware: 'auth', roles: ['admin'] })
+definePageMeta({ middleware: 'auth', permissions: [PERMISSIONS.MANAGE_VEHICLES] })
 useHead({
   title: 'Транспортні засоби — Delivery App',
   meta: [

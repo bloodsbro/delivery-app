@@ -1,13 +1,24 @@
 import type { Vehicle } from '~/types/vehicle'
+import type { Prisma } from '@prisma/client'
+
+type VehicleWithCourier = Prisma.VehicleGetPayload<{
+  include: {
+    couriers: {
+      include: {
+        user: true,
+      }
+    }
+  }
+}>
 
 export function mapVehicleTypeDbToFront(t: string): Vehicle['type'] {
   switch (t) {
     case 'car': return 'car'
     case 'motorcycle': return 'motorcycle'
     case 'van': return 'van'
-    case 'truck': return 'van'
-    case 'bicycle': return 'motorcycle'
-    case 'scooter': return 'motorcycle'
+    case 'truck': return 'truck'
+    case 'bicycle': return 'bicycle'
+    case 'scooter': return 'scooter'
     default: return 'car'
   }
 }
@@ -16,7 +27,7 @@ export function mapVehicleStatusDbToFront(s: string): Vehicle['status'] {
   switch (s) {
     case 'active': return 'available'
     case 'maintenance': return 'maintenance'
-    case 'inactive': return 'available'
+    case 'inactive': return 'offline'
     default: return 'available'
   }
 }
@@ -27,6 +38,9 @@ export function mapVehicleTypeFrontToDb(t?: Vehicle['type']): string | undefined
     case 'car': return 'car'
     case 'motorcycle': return 'motorcycle'
     case 'van': return 'truck'
+    case 'truck': return 'truck'
+    case 'bicycle': return 'bicycle'
+    case 'scooter': return 'scooter'
     default: return 'car'
   }
 }
@@ -37,11 +51,13 @@ export function mapVehicleStatusFrontToDb(s?: Vehicle['status']): string | undef
     case 'available': return 'active'
     case 'maintenance': return 'maintenance'
     case 'in_delivery': return 'active'
+    case 'offline': return 'inactive'
+    case 'busy': return 'active'
     default: return 'active'
   }
 }
 
-export function toFrontVehicle(db: any): Vehicle {
+export function toFrontVehicle(db: VehicleWithCourier): Vehicle {
   const driverName = db.couriers?.[0]?.user ? `${db.couriers[0].user.first_name} ${db.couriers[0].user.last_name}`.trim() : undefined
   const courierLat = db.couriers?.[0]?.current_latitude
   const courierLng = db.couriers?.[0]?.current_longitude

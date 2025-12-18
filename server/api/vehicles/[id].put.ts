@@ -1,5 +1,6 @@
 import { toFrontVehicle, mapVehicleTypeFrontToDb, mapVehicleStatusFrontToDb } from '~/server/utils/vehicles'
-import { currentUser } from '~/server/utils/auth'
+import { requirePermission } from '~/server/utils/rbac'
+import { PERMISSIONS } from '~/utils/permissions'
 import { updateVehicle } from '~/server/repositories/vehicles'
 import Joi from 'joi'
 import { createLog } from '~/server/repositories/logs'
@@ -8,15 +9,14 @@ import type { Vehicle } from '~/types/vehicle'
 export default defineEventHandler(async (event) => {
   const id = event.context.params?.id
   if (!id) throw createError({ statusCode: 400, statusMessage: 'id required' })
-  const me = await currentUser(event)
-  if (!me || me.role.name !== 'admin') throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  const me = await requirePermission(event, PERMISSIONS.MANAGE_VEHICLES)
   const body = await readBody<{ type?: string; model?: string; licensePlate?: string; capacity?: number; status?: string }>(event)
   const schema = Joi.object({
-    type: Joi.string().valid('car','van','motorcycle').optional(),
+    type: Joi.string().valid('car','van','motorcycle','truck','bicycle','scooter').optional(),
     model: Joi.string().allow('').optional(),
     licensePlate: Joi.string().allow('').optional(),
     capacity: Joi.number().min(0).optional(),
-    status: Joi.string().valid('available','maintenance','in_delivery').optional(),
+    status: Joi.string().valid('available','maintenance','in_delivery','offline','busy').optional(),
   })
   const { error } = schema.validate(body)
   if (error) throw createError({ statusCode: 400, statusMessage: 'Invalid input' })

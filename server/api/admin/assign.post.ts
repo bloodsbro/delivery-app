@@ -1,12 +1,12 @@
-import { currentUser } from '~/server/utils/auth'
+import { requirePermission } from '~/server/utils/rbac'
+import { PERMISSIONS } from '~/utils/permissions'
 import { assignOrderToCourier, getCourierById } from '~/server/repositories/couriers'
 import Joi from 'joi'
 import { createNotification } from '~/server/repositories/notifications'
 import { createLog } from '~/server/repositories/logs'
 
 export default defineEventHandler(async (event) => {
-  const me = await currentUser(event)
-  if (!me || me.role.name !== 'admin') throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  const me = await requirePermission(event, PERMISSIONS.MANAGE_ORDERS)
   const body = await readBody<{ orderId: string; courierId: string }>(event)
   const schema = Joi.object({ orderId: Joi.string().trim().required(), courierId: Joi.string().trim().required() })
   const { error } = schema.validate(body)

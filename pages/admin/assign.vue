@@ -21,6 +21,7 @@
 </template>
 <script setup lang="ts">
 import type { Order, Prisma } from '@prisma/client'
+import { PERMISSIONS } from '~/utils/permissions'
 
 type CourierWithUser = Prisma.CourierGetPayload<{
   include: { user: true }
@@ -28,7 +29,7 @@ type CourierWithUser = Prisma.CourierGetPayload<{
 
 type OrderWithRelations = Order & { customerName: string };
 
-definePageMeta({ middleware: 'auth', roles: ['admin'] })
+definePageMeta({ middleware: 'auth', permissions: [PERMISSIONS.MANAGE_ORDERS] })
 useHead({
   title: 'Розподіл замовлень — Delivery App',
   meta: [
