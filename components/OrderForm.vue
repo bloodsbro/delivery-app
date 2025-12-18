@@ -178,7 +178,7 @@ const form = ref<NewOrder>({
 });
 
 const isConfirmDialogOpen = ref(false);
-const addrSuggestions = ref<any[]>([])
+const addrSuggestions = ref<Array<{ place_id: string; display_name: string; lat: string; lon: string }>>([])
 const showAddr = ref(false)
 const lat = ref<number | undefined>(undefined)
 const lng = ref<number | undefined>(undefined)
@@ -214,7 +214,7 @@ const submitOrderConfirmed = async () => {
   closeConfirmDialog();
   try {
     const createdOrder = await orderStore.createOrder({ ...form.value, deliveryLat: lat.value, deliveryLng: lng.value });
-    alert(`Замовлення #${createdOrder.id.slice(0,8)} успішно створено!`);
+    alert(`Замовлення #${createdOrder?.id.slice(0,8)} успішно створено!`);
 
     form.value = {
       customerName: '',
@@ -238,22 +238,22 @@ const submitOrderConfirmed = async () => {
 };
 
 const matches = ref<Array<{ id: string; phone: string; firstName?: string; lastName?: string; address?: string }>>([])
-let phoneTimer: any
+let phoneTimer: NodeJS.Timeout
 const onPhoneInput = () => {
   clearTimeout(phoneTimer)
   const q = form.value.customerPhone.trim()
   if (q.length < 7) { matches.value = []; return }
   phoneTimer = setTimeout(async () => {
     const { data } = await useFetch('/api/customers/search', { query: { q } })
-    matches.value = (data.value as any) || []
+    matches.value = (data.value as Array<{ id: string; phone: string; firstName?: string; lastName?: string; address?: string }>) || []
   }, 250)
 }
-const applyMatch = (m: any) => {
+const applyMatch = (m: { id: string; phone: string; firstName?: string; lastName?: string; address?: string }) => {
   form.value.customerName = `${m.firstName || ''} ${m.lastName || ''}`.trim()
   if (m.address) form.value.customerAddress = m.address
 }
 
-let addrTimer: any
+let addrTimer: NodeJS.Timeout
 const onAddressInput = () => {
   clearTimeout(addrTimer)
   const q = form.value.customerAddress.trim()
@@ -270,7 +270,7 @@ const onAddressInput = () => {
     }
   }, 250)
 }
-const applySuggestion = (s: any) => {
+const applySuggestion = (s: { display_name: string; lat: string; lon: string }) => {
   form.value.customerAddress = s.display_name
   const plat = Number(s.lat)
   const plon = Number(s.lon)

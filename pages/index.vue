@@ -15,7 +15,7 @@
       <span>Пошук...</span>
     </div>
     <div v-else-if="order" class="mt-4 space-y-4">
-      <OrderItem :order="order" :show-admin-controls="false" :allow-status-edit="false" />
+      <OrderItem :order="order" :show-admin-controls="false" :allow-status-edit="false" @order-updated="handleOrderUpdated" />
       <div class="border border-gray-800 rounded-lg p-4">
         <div class="text-sm text-gray-400 mb-2">Карта: кур’єр та точка доставки</div>
         <MapView :markers="markers" :points="polylinePoints" :center="mapCenter" />
@@ -54,7 +54,9 @@ const search = async () => {
     const data = await $fetch<Order>(`/api/track/${encodeURIComponent(ttn.value.trim())}`)
     order.value = data || null
     if (!order.value) error.value = 'Посилку не знайдено'
-  } catch (e) {
+  } catch (e: unknown) {
+    console.error(e);
+
     error.value = 'Посилку не знайдено'
   } finally {
     loading.value = false
@@ -100,4 +102,10 @@ const mapCenter = computed(() => {
   const p0 = markers.value[0]
   return p0 ? { lat: p0.lat, lng: p0.lng } : { lat: 50, lng: 30 }
 })
+
+const handleOrderUpdated = (payload: { id: string; rest: Partial<Order> }) => {
+  if (order.value?.id === payload.id) {
+    Object.assign(order.value, payload.rest)
+  }
+}
 </script>

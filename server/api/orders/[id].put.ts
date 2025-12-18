@@ -20,6 +20,22 @@ export default defineEventHandler(async (event) => {
   if (body.status) await updateStatusByFront(orderId, body.status)
 
   const updated = await findById(orderId)
+
+  if (exists && updated && exists.status_id !== updated.status_id) {
+    const oldStatus = exists.status?.name || 'невідомо';
+    const newStatus = updated.status?.name || 'невідомо';
+    const phone = updated.customer?.user?.phone || updated.delivery_contact_phone || 'не вказано';
+    
+    console.log(`Відправка SMS повідомлення на телефон ${phone}: зміна статусу посилки з ${oldStatus} на ${newStatus}`);
+    
+    const email = updated.customer?.user?.email;
+    if (email) {
+      await sendEmail(email, `Оновлення статусу замовлення #${updated.order_number}`, `Статус вашого замовлення змінено з "${oldStatus}" на "${newStatus}".`);
+    } else {
+      console.log(`Email не вказано для замовлення #${updated.order_number}, лист не відправлено.`);
+    }
+  }
+
   if (updated?.customer?.user?.id) {
     await createNotification({ userId: updated.customer.user.id, type: 'in_app', title: 'Статус замовлення оновлено', content: `Статус замовлення #${updated.order_number} змінено на ${updated.status?.name}`, relatedEntityType: 'order', relatedEntityId: updated.id })
   }

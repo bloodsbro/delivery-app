@@ -20,6 +20,14 @@
   </div>
 </template>
 <script setup lang="ts">
+import type { Order, Prisma } from '@prisma/client'
+
+type CourierWithUser = Prisma.CourierGetPayload<{
+  include: { user: true }
+}>
+
+type OrderWithRelations = Order & { customerName: string };
+
 definePageMeta({ middleware: 'auth', roles: ['admin'] })
 useHead({
   title: 'Розподіл замовлень — Delivery App',
@@ -32,19 +40,19 @@ useHead({
     { name: 'twitter:card', content: 'summary' }
   ]
 })
-const orders = ref<any[]>([])
-const couriers = ref<any[]>([])
+const orders = ref<OrderWithRelations[]>([])
+const couriers = ref<CourierWithUser[]>([])
 const assign = reactive<Record<string,string>>({})
 const load = async () => {
-  const { data: o } = await useFetch<any[]>('/api/admin/orders/unassigned')
-  orders.value = o.value || []
-  const { data: c } = await useFetch<any[]>('/api/couriers')
-  couriers.value = c.value || []
+  const o = await $fetch<OrderWithRelations[]>('/api/admin/orders/unassigned')
+  orders.value = o || []
+  const c = await $fetch<CourierWithUser[]>('/api/couriers')
+  couriers.value = c || []
 }
 const doAssign = async (orderId: string) => {
   const courierId = assign[orderId]
   if (!courierId) return
-  await useFetch('/api/admin/assign', { method: 'POST', body: { orderId, courierId } })
+  await $fetch('/api/admin/assign', { method: 'POST', body: { orderId, courierId } })
   await load()
 }
 onMounted(load)

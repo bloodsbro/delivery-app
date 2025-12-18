@@ -3,10 +3,15 @@ import { createHmac, randomBytes } from 'crypto'
 const ALG = 'sha256'
 
 function getSecret() {
-  return process.env.SESSION_SECRET || 'dev-secret'
+  try {
+    const config = useRuntimeConfig()
+    return config.sessionSecret
+  } catch {
+    return process.env.SESSION_SECRET || 'dev-secret'
+  }
 }
 
-export function signSession(payload: Record<string, any>): string {
+export function signSession(payload: Record<string, string>): string {
   const data = { ...payload, iat: Date.now(), nonce: randomBytes(8).toString('hex') }
   const json = JSON.stringify(data)
   const b64 = Buffer.from(json).toString('base64url')
@@ -14,7 +19,7 @@ export function signSession(payload: Record<string, any>): string {
   return `${b64}.${sig}`
 }
 
-export function verifySession(token?: string): Record<string, any> | null {
+export function verifySession(token?: string): Record<string, string> | null {
   if (!token) return null
   const parts = token.split('.')
   if (parts.length !== 2) return null

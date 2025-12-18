@@ -3,6 +3,7 @@ import { currentUser } from '~/server/utils/auth'
 import { createVehicle } from '~/server/repositories/vehicles'
 import Joi from 'joi'
 import { createLog } from '~/server/repositories/logs'
+import type { Vehicle } from '~/types/vehicle'
 
 export default defineEventHandler(async (event) => {
   const me = await currentUser(event)
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event) => {
   })
   const { error } = schema.validate(body)
   if (error) throw createError({ statusCode: 400, statusMessage: 'Invalid input' })
-  const created = await createVehicle({ type: mapVehicleTypeFrontToDb(body.type) as any, model: body.model, licensePlate: body.licensePlate, capacity: body.capacity, status: (mapVehicleStatusFrontToDb(body.status as any) || 'active') as any })
+  const created = await createVehicle({ type: mapVehicleTypeFrontToDb(body.type as Vehicle["type"]), model: body.model, licensePlate: body.licensePlate, capacity: body.capacity, status: (mapVehicleStatusFrontToDb(body.status as Vehicle['status']) || 'active') as Vehicle['status'] })
   await createLog({ userId: me.id, action: 'vehicle_created', entityType: 'vehicle', entityId: created.id, data: { type: body.type, model: body.model } })
   return toFrontVehicle(created)
 })

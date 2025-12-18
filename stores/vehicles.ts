@@ -11,32 +11,46 @@ export const useVehicleStore = defineStore('vehicles', {
   }),
   actions: {
     async fetchVehicles() {
-      const { data, error } = await useFetch<Vehicle[]>('/api/vehicles');
-      if (data.value) {
-        this.vehicles = data.value;
-      }
-      if (error.value) {
-        console.error('Помилка при завантаженні транспортних засобів:', error.value);
-        throw error.value;
+      try {
+        const data = await $fetch<Vehicle[]>('/api/vehicles');
+        if (data) {
+          this.vehicles = data;
+        }
+      } catch (error) {
+        console.error('Помилка при завантаженні транспортних засобів:', error);
+        throw error;
       }
     },
     async createVehicle(payload: Partial<Vehicle>) {
-      const { data, error } = await useFetch<Vehicle>('/api/vehicles', { method: 'POST', body: payload })
-      if (error.value) throw error.value
-      if (data.value) this.vehicles.unshift(data.value)
-      return data.value
+      try {
+        const data = await $fetch<Vehicle>('/api/vehicles', { method: 'POST', body: payload })
+        return data;
+      } catch (error) {
+        console.error(error);
+        throw error;
+      }
     },
     async updateVehicle(id: string, payload: Partial<Vehicle>) {
-      const { data, error } = await useFetch<Vehicle>(`/api/vehicles/${id}`, { method: 'PUT', body: payload })
-      if (error.value) throw error.value
-      const idx = this.vehicles.findIndex(v => v.id === id)
-      if (idx !== -1 && data.value) this.vehicles[idx] = data.value
-      return data.value
+      try {
+        const data = await $fetch<Vehicle>(`/api/vehicles/${id}`, { method: 'PUT', body: payload })
+        const idx = this.vehicles.findIndex(v => v.id === id)
+        if (idx !== -1 && data) this.vehicles[idx] = data
+        
+        return data
+      } catch (error) {
+        console.error(error);
+        throw error;
+      }
     },
     async deleteVehicle(id: string) {
-      const { error } = await useFetch(`/api/vehicles/${id}`, { method: 'DELETE' })
-      if (error.value) throw error.value
-      this.vehicles = this.vehicles.filter(v => v.id !== id)
+      try {
+        // @ts-expect-error: Тип помилки не відповідає очікуваному типу
+        await $fetch(`/api/vehicles/${id}`, { method: 'DELETE' });
+        this.vehicles = this.vehicles.filter(v => v.id !== id)
+      } catch (error) {
+        console.error(error);
+        throw error;
+      }
     }
   },
 });

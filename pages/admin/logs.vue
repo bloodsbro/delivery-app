@@ -2,10 +2,10 @@
   <div class="container mx-auto p-4 text-gray-100">
     <h1 class="text-2xl font-bold mb-6">Журнали подій</h1>
     <div class="mb-4 flex items-center gap-2">
-      <input v-model.number="limit" type="number" min="1" max="500" class="border border-gray-700 bg-gray-800 text-gray-100 rounded p-2 w-24" />
+      <input v-model.number="limit" type="number" min="1" max="500" class="border border-gray-700 bg-gray-800 text-gray-100 rounded p-2 w-24" >
       <button class="px-3 py-2 bg-blue-600 text-white rounded" @click="load">Оновити</button>
     </div>
-    <div class="border border-gray-800 rounded overflow-hidden">
+    <div class="border border-gray-800 rounded overflow-auto">
       <table class="w-full text-sm">
         <thead class="bg-gray-900">
           <tr>
@@ -32,6 +32,8 @@
   </div>
 </template>
 <script setup lang="ts">
+import type { Log } from '@prisma/client'
+
 definePageMeta({ middleware: 'auth', roles: ['admin'] })
 useHead({
   title: 'Журнали подій — Delivery App',
@@ -44,10 +46,10 @@ useHead({
     { name: 'twitter:card', content: 'summary' }
   ]
 })
-const logs = ref<any[]>([])
+const logs = ref<Log[]>([])
 const limit = ref(100)
-const load = async () => { const { data } = await useFetch<any[]>('/api/admin/logs', { query: { limit: limit.value } }); logs.value = data.value || [] }
+const load = async () => { const { data } = await useFetch<Log[]>('/api/admin/logs', { query: { limit: limit.value } }); logs.value = data.value || [] }
 onMounted(load)
-const format = (d: any) => { try { return JSON.stringify(d ?? {}, null, 2) } catch { return String(d) }
+const format = (d: Log['data']) => { try { return JSON.stringify(d ?? {}, null, 2) } catch { return String(d) }
 }
 </script>

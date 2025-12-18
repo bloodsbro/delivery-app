@@ -11,14 +11,17 @@
         :order="order"
         :show-admin-controls="showAdminControls"
         :allow-status-edit="props.allowStatusEdit ?? true"
+        :selectable="selectable"
+        :selected="selectedIds?.has(order.id)"
         @update-status="handleUpdateStatus"
+        @toggle-selection="emit('toggle-selection', $event)"
+        @order-updated="handleOrderUpdated"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from 'vue';
 import type { Order } from '~/types/order';
 
 const props = defineProps<{
@@ -27,9 +30,19 @@ const props = defineProps<{
   showAdminControls?: boolean;
   isAllOrders: boolean;
   allowStatusEdit?: boolean;
+  selectable?: boolean;
+  selectedIds?: Set<string>;
 }>();
 
-const emit = defineEmits(['update-status']);
+const handleOrderUpdated = (payload: { id: string; rest: Partial<Order> }) => {
+  const order = props.orders.find(o => o.id === payload.id);
+  if (order) {
+    Object.assign(order, payload.rest);
+    emit('order-updated', payload);
+  }
+};
+
+const emit = defineEmits(['update-status', 'toggle-selection', 'order-updated']);
 
 const handleUpdateStatus = (payload: { orderId: string; status: Order['status'] }) => {
   emit('update-status', payload);

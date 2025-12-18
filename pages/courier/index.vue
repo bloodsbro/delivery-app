@@ -20,7 +20,10 @@
         :show-admin-controls="false"
         :allow-status-edit="true"
         :is-all-orders="false"
+        :selectable="true"
+        :selected-ids="selectedOrderIds"
         @update-status="handleUpdateStatus"
+        @toggle-selection="toggleSelection"
       />
     </div>
   </div>
@@ -28,6 +31,8 @@
 <script setup lang="ts">
 import MapView from '~/components/MapView.vue'
 import OrderList from '~/components/OrderList.vue'
+import type { Order } from '~/types/order'
+
 definePageMeta({ middleware: 'auth', roles: ['courier'] })
 useHead({
   title: 'Кабінет кур’єра — Delivery App',
@@ -41,14 +46,21 @@ useHead({
   ]
 })
 const loading = ref(true)
-const orders = ref<any[]>([])
+const orders = ref<Order[]>([])
+const selectedOrderIds = ref(new Set<string>())
+const toggleSelection = (id: string) => {
+  const newSet = new Set(selectedOrderIds.value)
+  if (newSet.has(id)) newSet.delete(id)
+  else newSet.add(id)
+  selectedOrderIds.value = newSet
+}
 const lastUpdate = ref<string>('')
 const autoEnabled = ref(true)
 const geoWatchId = ref<number | null>(null)
 let lastSentAt = 0
 const minIntervalMs = 15000
 const load = async () => {
-  const { data } = await useFetch<any[]>('/api/courier/orders')
+  const { data } = await useFetch<Order[]>('/api/courier/orders')
   orders.value = data.value || []
   loading.value = false
 }
@@ -111,11 +123,13 @@ onMounted(() => {
   $socket?.on('courier:location', async () => { /* у разі потреби перерахувати маршрут */ })
   startAutoGeo()
 })
-onUnmounted(() => { if (geoWatchId.value !== null) { try { navigator.geolocation.clearWatch(geoWatchId.value) } catch {} } })
+onUnmounted(() => { if (geoWatchId.value !== null) { try { navigator.geolocation.clearWatch(geoWatchId.value) } catch {
+  /* empty */
+} } })
 
 const handleUpdateStatus = async (payload: { orderId: string; status: string }) => {
-  const { data } = await useFetch(`/api/orders/${payload.orderId}`, { method: 'PUT', body: { status: payload.status } })
-  const updated = data.value
+  const data = await $fetch<Order>(`/api/orders/${payload.orderId}`, { method: 'PUT', body: { status: payload.status } })
+  const updated = data
   orders.value = (orders.value || []).map(o => o.id === payload.orderId ? updated : o)
 }
 
@@ -154,7 +168,9 @@ const startAutoGeo = () => {
     }, (err) => {
       console.error(err)
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 })
-  } catch {}
+  } catch {
+    /* empty */
+  }
 }
 
 watch(autoEnabled, (val) => {

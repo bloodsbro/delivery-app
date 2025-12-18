@@ -183,7 +183,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, ref, computed, defineEmits, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import type { Order } from '~/types/order';
 import {
   Disclosure,
@@ -211,9 +211,9 @@ const closeEditUserDialog = () => {
 };
 
 const saveCustomer = async () => {
-  await useFetch(`/api/admin/orders/${props.order.id}`, { method: 'PUT', body: { name: editCustomerName.value, phone: editCustomerPhone.value } })
-  props.order.customerName = editCustomerName.value
-  props.order.customerPhone = editCustomerPhone.value
+  const payload = { name: editCustomerName.value, phone: editCustomerPhone.value };
+  await useFetch(`/api/admin/orders/${props.order.id}`, { method: 'PUT', body: payload })
+  emit('order-updated', { id: props.order.id, ...payload });
   editUserToggle.value = false
 }
 
@@ -221,21 +221,23 @@ const props = defineProps<{
   order: Order;
   showAdminControls?: boolean;
   allowStatusEdit?: boolean;
+  selectable?: boolean;
+  selected?: boolean;
 }>();
 
-const emit = defineEmits(['update-status']);
+const emit = defineEmits(['update-status', 'toggle-selection', 'order-updated']);
 
 const selectedStatus = ref(props.order.status);
 const addressEdit = ref(props.order.customerAddress)
 const addressLat = ref<number | undefined>(props.order.deliveryLat)
 const addressLng = ref<number | undefined>(props.order.deliveryLng)
-const addressSuggestions = ref<any[]>([])
+const addressSuggestions = ref<Array<{ place_id: string; display_name: string; lat: string; lon: string }>>([])
 const showAddressDropdown = ref(false)
 const selectedCourier = ref('')
-const couriers = ref<any[]>([])
+const couriers = ref<Array<{ id: string; user: { first_name: string; last_name: string } }>>([])
 onMounted(async () => {
   if (props.showAdminControls) {
-    const data = await $fetch<any[]>('/api/couriers')
+    const data = await $fetch<Array<{ id: string; user: { first_name: string; last_name: string } }>>('/api/couriers')
     couriers.value = data ?? []
   }
   selectedCourier.value = props.order.courierId || ''
@@ -273,25 +275,22 @@ const assignCourier = async () => {
   await useFetch('/api/admin/assign', { method: 'POST', body: { orderId: props.order.id, courierId: selectedCourier.value } })
   const picked = couriers.value.find(c => String(c.id) === String(selectedCourier.value))
   if (picked) {
-    props.order.courierId = String(picked.id)
-    props.order.courierName = `${picked.user?.first_name || ''} ${picked.user?.last_name || ''}`.trim()
+    emit('order-updated', { id: props.order.id, courierId: String(picked.id), courierName: `${picked.user?.first_name || ''} ${picked.user?.last_name || ''}`.trim() })
   }
   selectedStatus.value = 'processing'
-  props.order.status = 'processing'
+  emit('order-updated', { id: props.order.id, status: 'processing' })
   alert('Курʼєра призначено')
 }
 
 const saveAddress = async () => {
   await useFetch(`/api/admin/orders/${props.order.id}`, { method: 'PUT', body: { address: addressEdit.value, deliveryLat: addressLat.value, deliveryLng: addressLng.value } })
-  props.order.customerAddress = addressEdit.value
-  props.order.deliveryLat = addressLat.value
-  props.order.deliveryLng = addressLng.value
+  emit('order-updated', { id: props.order.id, customerAddress: addressEdit.value, deliveryLat: addressLat.value, deliveryLng: addressLng.value })
   alert('Адресу збережено')
 }
 
-let addrTimer: any
+let addrTimer: NodeJS.Timeout | null = null
 const onAddressInput = () => {
-  clearTimeout(addrTimer)
+  if (addrTimer) clearTimeout(addrTimer)
   const q = String(addressEdit.value || '').trim()
   if (q.length < 3) { addressSuggestions.value = []; return }
   addrTimer = setTimeout(async () => {
@@ -307,7 +306,7 @@ const onAddressInput = () => {
   }, 250)
 }
 
-const applySuggestion = (s: any) => {
+const applySuggestion = (s: { display_name: string; lat: string; lon: string }) => {
   addressEdit.value = s.display_name
   const lat = Number(s.lat)
   const lon = Number(s.lon)

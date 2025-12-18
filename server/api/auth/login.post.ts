@@ -5,13 +5,39 @@ import Joi from 'joi'
 import { createLog } from '~/server/repositories/logs'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ email?: string; password?: string }>(event)
+  const body = await readBody<{ email?: string; password?: string; captchaToken?: string }>(event)
   const schema = Joi.object({
     email: Joi.string().trim().lowercase().email().required(),
     password: Joi.string().min(6).required(),
+    captchaToken: Joi.string().optional(),
   })
   const { error } = schema.validate(body)
   if (error) throw createError({ statusCode: 400, statusMessage: 'Invalid credentials' })
+  
+  // Verify CAPTCHA
+  const config = useRuntimeConfig()
+  const secretKey = config.recaptchaSecretKey
+
+  if (secretKey) {
+    if (!body.captchaToken) {
+      throw createError({ statusCode: 400, statusMessage: 'Будь ласка, пройдіть перевірку CAPTCHA' })
+    }
+
+    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${body.captchaToken}`
+    try {
+      const verifyRes = await fetch(verifyUrl, { method: 'POST' })
+      const verifyData = await verifyRes.json()
+      if (!verifyData.success) {
+        throw createError({ statusCode: 400, statusMessage: 'CAPTCHA перевірка не пройдена. Спробуйте ще раз.' })
+      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      if (e.statusCode === 400 && e.statusMessage) throw e
+      console.error('CAPTCHA error:', e)
+      throw createError({ statusCode: 500, statusMessage: 'Помилка перевірки CAPTCHA' })
+    }
+  }
+
   const email = String(body.email || '').trim().toLowerCase()
   const password = String(body.password || '')
   if (!email || !password) throw createError({ statusCode: 400, statusMessage: 'Invalid credentials' })

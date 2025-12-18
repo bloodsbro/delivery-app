@@ -1,12 +1,13 @@
 import prisma from '~/lib/prisma'
 import { currentUser } from '~/server/utils/auth'
 import bcrypt from 'bcrypt'
+import type { User } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
   const me = await currentUser(event)
   if (!me) throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
   const body = await readBody<{ firstName?: string; lastName?: string; phone?: string; password?: string }>(event)
-  const data: any = {}
+  const data: Partial<User> = {}
   if (body.firstName != null) data.first_name = body.firstName
   if (body.lastName != null) data.last_name = body.lastName
   if (body.phone != null) data.phone = body.phone

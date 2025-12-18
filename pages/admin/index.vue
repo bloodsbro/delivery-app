@@ -25,13 +25,45 @@
         :show-admin-controls="true"
         :allow-status-edit="true"
         :is-all-orders="isAllOrders"
+        :selectable="true"
+        :selected-ids="selectedOrderIds"
         @update-status="handleUpdateStatus"
+        @toggle-selection="toggleSelection"
       />
     </div>
     
     <div class="border border-gray-800 rounded-lg p-4">
-      <MapView :points="routePoints" :markers="routeMarkers" />
+      <MapView :points="routePoints" :markers="routeMarkers" @marker-click="onMarkerClick" />
     </div>
+
+    <UModal v-model="modalOpen">
+      <div class="p-6 bg-gray-900 text-gray-100 rounded-lg border border-gray-700">
+        <div v-if="selectedOrderForModal">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold">Замовлення #{{ selectedOrderForModal.id }}</h3>
+            <button class="text-gray-400 hover:text-white" @click="modalOpen = false">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="space-y-3">
+            <p><strong>Клієнт:</strong> {{ selectedOrderForModal.customerName }}</p>
+            <p><strong>Телефон:</strong> {{ selectedOrderForModal.customerPhone }}</p>
+            <p><strong>Адреса:</strong> {{ selectedOrderForModal.customerAddress }}</p>
+            <p><strong>Сума:</strong> {{ selectedOrderForModal.totalAmount.toFixed(2) }} грн</p>
+            <p><strong>Статус:</strong> {{ selectedOrderForModal.status }}</p>
+            <p><strong>Товари:</strong></p>
+            <ul class="list-disc list-inside pl-2 text-sm text-gray-300">
+              <li v-for="item in selectedOrderForModal.items" :key="item.name">
+                {{ item.name }} x {{ item.quantity }}
+              </li>
+            </ul>
+          </div>
+          <div class="mt-6 flex justify-end">
+            <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" @click="modalOpen = false">Закрити</button>
+          </div>
+        </div>
+      </div>
+    </UModal>
   </div>
   
 </template>
@@ -63,6 +95,29 @@ onMounted(() => {
 
 const orderStore = useOrderStore();
 
+const selectedOrderIds = ref(new Set<string>())
+const toggleSelection = (id: string) => {
+  if (selectedOrderIds.value.has(id)) {
+    selectedOrderIds.value.delete(id)
+  } else {
+    selectedOrderIds.value.add(id)
+  }
+  selectedOrderIds.value = new Set(selectedOrderIds.value)
+}
+
+const modalOpen = ref(false)
+const selectedOrderForModal = ref<Order | null>(null)
+
+const onMarkerClick = (m: { lat: number; lng: number; orderId?: string }) => {
+  if (m && m.orderId) {
+    const order = orderStore.orders.find(o => o.id === m.orderId)
+    if (order) {
+      selectedOrderForModal.value = order
+      modalOpen.value = true
+    }
+  }
+}
+
 const isAllOrders = ref(false);
 const loading = ref(true)
 
@@ -83,6 +138,8 @@ const handleUpdateStatus = async (payload: { orderId: string; status: Order['sta
 };
 
 const routePoints = ref<{ lat: number; lng: number }[]>([])
+const markerPoints = ref<{ lat: number; lng: number; orderId?: string }[]>([])
+
 async function fetchOsrmSegment(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const url = `https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`
   const res = await fetch(url)
@@ -122,17 +179,25 @@ async function computeRoadRoute(points: { lat: number; lng: number }[]) {
   return poly.length ? poly : ordered
 }
 const routeMarkers = computed(() => {
-  const pts = routePoints.value
+  const pts = markerPoints.value
   if (!pts.length) return []
-  const start = pts[0]
-  const end = pts[pts.length - 1]
-  return [ { lat: start.lat, lng: start.lng, label: 'Початок' }, { lat: end.lat, lng: end.lng, label: 'Кінець' } ]
+
+  return pts.map((p) => ({ lat: p.lat, lng: p.lng, label: p.orderId, orderId: p.orderId }))
 })
 
-watch(() => orderStore.orders, async (list) => {
-  const pts = (list || [])
-    .map(o => ({ lat: o.deliveryLat as number, lng: o.deliveryLng as number }))
+watch([() => orderStore.orders, selectedOrderIds], async ([list, ids]) => {
+  let orders = list || []
+  
+  orders = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled')
+
+  if (ids && ids.size > 0) {
+    orders = orders.filter(o => ids.has(o.id))
+  }
+  
+  const pts = orders
+    .map(o => ({ lat: o.deliveryLat as number, lng: o.deliveryLng as number, orderId: o.id }))
     .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+  markerPoints.value = pts;
   routePoints.value = await computeRoadRoute(pts)
 }, { immediate: true })
 </script>

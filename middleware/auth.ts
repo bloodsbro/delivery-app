@@ -2,7 +2,11 @@ import { useAuthStore } from '~/stores/auth'
 export default defineNuxtRouteMiddleware(async (to) => {
   const auth = useAuthStore()
   if (!auth.user) {
-    try { await auth.me() } catch {}
+    try { 
+      await auth.me() 
+    } catch {
+      return navigateTo('/login')
+    }
   }
   const requiredRoles = (to.meta?.roles as string[]) || []
   if (requiredRoles.length > 0) {

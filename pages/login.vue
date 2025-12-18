@@ -1,9 +1,13 @@
 <template>
   <div class="container mx-auto p-4 max-w-md text-gray-100">
     <h1 class="text-2xl font-bold mb-6">Вхід</h1>
+    <p v-if="error" class="text-center bg-red-600">{{ error }}</p>
     <form class="space-y-4" @submit.prevent="submit">
       <input v-model="email" type="email" class="w-full border border-gray-700 bg-gray-800 text-gray-100 rounded p-2 placeholder-gray-400" placeholder="Email" required >
       <input v-model="password" type="password" class="w-full border border-gray-700 bg-gray-800 text-gray-100 rounded p-2 placeholder-gray-400" placeholder="Пароль" required >
+      
+      <div v-if="siteKey" ref="recaptchaContainer" class="g-recaptcha" :data-sitekey="siteKey"/>
+      
       <button type="submit" class="w-full bg-blue-600 text-white p-3 rounded">Увійти</button>
     </form>
     <div class="mt-4 p-3 border border-gray-800 rounded bg-gray-900 text-sm text-gray-400">
@@ -36,6 +40,10 @@ import { useAuthStore } from '~/stores/auth'
 const auth = useAuthStore()
 const email = ref('')
 const password = ref('')
+const error = ref('');
+const config = useRuntimeConfig()
+const siteKey = config.public.recaptchaSiteKey
+
 useHead({
   title: 'Вхід — Delivery App',
   meta: [
@@ -45,13 +53,37 @@ useHead({
     { property: 'og:description', content: 'Авторизація користувача у Delivery App.' },
     { property: 'og:type', content: 'website' },
     { name: 'twitter:card', content: 'summary' }
-  ]
+  ],
+  script: siteKey ? [
+    { src: 'https://www.google.com/recaptcha/api.js', async: true, defer: true }
+  ] : []
 })
 
 const submit = async () => {
-  await auth.login(email.value, password.value)
-  if (auth.user?.role === 'admin') return navigateTo('/admin')
-  return navigateTo('/my-orders')
+  error.value = ''
+  
+  let token: string | undefined
+  if (siteKey) {
+    // @ts-expect-error grecaptcha
+    token = window.grecaptcha?.getResponse()
+    if (!token) {
+      error.value = 'Будь ласка, пройдіть перевірку CAPTCHA'
+      return
+    }
+  }
+
+  try {
+    await auth.login(email.value, password.value, token)
+    if (auth.user?.role === 'admin') return navigateTo('/admin')
+    return navigateTo('/courier')
+  } catch (e: unknown) {
+    // @ts-expect-error grecaptcha reset
+    error.value = e?.response?.statusMessage || 'Невірний email або пароль'
+    if (siteKey) {
+      // @ts-expect-error grecaptcha reset
+      window.grecaptcha?.reset()
+    }
+  }
 }
 
 const loginWith = async (e: string, p: string) => {

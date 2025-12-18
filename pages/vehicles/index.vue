@@ -55,6 +55,7 @@ import VehicleCard from '~/components/VehicleCard.vue';
 import MapView from '~/components/MapView.vue'
 import type { Vehicle } from '~/types/vehicle'
 import { useAuthStore } from '~/stores/auth'
+
 definePageMeta({ middleware: 'auth', roles: ['admin'] })
 useHead({
   title: 'Транспортні засоби — Delivery App',
@@ -92,9 +93,12 @@ onMounted(async () => {
     await vehicleStore.fetchVehicles();
   }
   if ((orderStore.orders || []).length === 0) {
-    try { await orderStore.fetchOrders() } catch {}
+    try { await orderStore.fetchOrders() } catch {
+      console.error('Error fetching orders');
+    }
   }
 });
+
 const { $socket } = useNuxtApp()
 onMounted(() => {
   $socket?.on('order:assigned', async () => { await vehicleStore.fetchVehicles() })
@@ -125,5 +129,5 @@ function statusLabel(s: Vehicle['status']) {
     default: return String(s)
   }
 }
-function onMarkerClick(m: any) { selectedVehicleInfo.value = String(m.info || m.label || '') }
+function onMarkerClick(m: { id: string; info: string, label?: string }) { selectedVehicleInfo.value = String(m.info || m.label || '') }
 </script>
